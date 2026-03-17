@@ -1,0 +1,91 @@
+{
+  "week_start": "2026-03-16",
+  "week_end": "2026-03-22",
+  "updated_at": "2026-03-17T16:10:00+08:00",
+  "direction": "bearish",
+  "direction_cn": "主空",
+  "confidence": 7,
+  "reasoning": [
+    "周线 MACD 空头，RSI 38",
+    "日线/周线缩量反弹",
+    "链上四大模型显示现价高估（真底 $42K-$63K）",
+    "$58K → $76K 是反弹不是反转",
+    "下方 $62.5K equal lows 流动性未扫"
+  ],
+  
+  "trade_zones": {
+    "resistance": [
+      {
+        "range": [74000, 75000],
+        "name": "第一压力区",
+        "action": "轻仓试空",
+        "position_pct": 20,
+        "notes": "日线布林上轨 + 前高密集区"
+      },
+      {
+        "range": [78000, 80000],
+        "name": "核心压力区", 
+        "action": "主力建空",
+        "position_pct": 50,
+        "notes": "周线 EMA20 附近"
+      },
+      {
+        "range": [83000, 85000],
+        "name": "极限压力区",
+        "action": "加仓空",
+        "position_pct": 30,
+        "notes": "日线 EMA200 附近"
+      }
+    ],
+    "support": [
+      {
+        "range": [70000, 71000],
+        "name": "第一支撑区",
+        "action": "空单止盈区",
+        "notes": "4H EMA50"
+      },
+      {
+        "range": [66000, 68000],
+        "name": "第二支撑区", 
+        "action": "观察多头机会",
+        "notes": "前低支撑"
+      },
+      {
+        "range": [62000, 63500],
+        "name": "核心支撑区",
+        "action": "考虑轻仓多",
+        "notes": "equal lows + 链上底部区"
+      }
+    ]
+  },
+
+  "key_ema": {
+    "4H_EMA300": 73208,
+    "4H_EMA20": 72731,
+    "4H_EMA50": 71336,
+    "1D_EMA50": 72800,
+    "1D_boll_upper": 74877,
+    "1W_EMA20": 82000
+  },
+
+  "invalidation": {
+    "turn_bullish": "周线收盘站稳 $82K+",
+    "pause_short": "日线连续 3 根阳线站稳 $75K",
+    "add_short": "冲压力区后插针回落",
+    "consider_long": "跌入 $62-63K 且出现止跌形态"
+  },
+
+  "events": [
+    {"date": "2026-03-18", "time": "20:30", "name": "美国 PPI", "importance": "medium"},
+    {"date": "2026-03-19", "time": "02:00", "name": "FOMC 利率决议", "importance": "high"},
+    {"date": "2026-03-19", "time": "02:30", "name": "鲍威尔发布会", "importance": "high"},
+    {"date": "2026-03-21", "time": null, "name": "四巫日", "importance": "medium"}
+  ],
+
+  "current_status": {
+    "price_zone": "第一压力区",
+    "today_high": 76000,
+    "today_low": 74033,
+    "note": "早盘冲 $76K 插针回落，确认压力区有效"
+  }
+}

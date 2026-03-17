@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Trading Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background: #000;
+            color: #f5f5f7;
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr 340px;
+            grid-template-rows: auto 1fr;
+            gap: 12px;
+            padding: 12px;
+            min-height: 100vh;
+            width: 100%;
+        }
+        
+        /* Header - Compact */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: rgba(28, 28, 30, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #f5f5f7;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #f7931a, #f5a623);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .price-section {
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+        }
+        
+        .current-price {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: #f5f5f7;
+        }
+        
+        .price-change {
+            font-size: 15px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-weight: 600;
+        }
+        
+        .price-change.up { background: rgba(52, 199, 89, 0.2); color: #34c759; }
+        .price-change.down { background: rgba(255, 69, 58, 0.2); color: #ff453a; }
+        
+        .header-stats {
+            display: flex;
+            gap: 28px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .header-stat span { color: #fff; font-weight: 600; }
+        
+        /* Cards - Compact */
+        .card {
+            background: rgba(28, 28, 30, 0.95);
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 14px;
+        }
+        
+        .card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #86868b;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        /* Left Sidebar */
+        .sidebar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        /* Zone Card */
+        .zone-current {
+            text-align: center;
+            padding: 24px;
+        }
+        
+        .zone-badge {
+            display: inline-block;
+            padding: 10px 24px;
+            background: linear-gradient(135deg, rgba(247, 147, 26, 0.2), rgba(255, 179, 71, 0.1));
+            border: 1px solid rgba(247, 147, 26, 0.3);
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #f7931a;
+            margin-bottom: 14px;
+        }
+        
+        .zone-range {
+            font-size: 16px;
+            color: #999;
+            margin-bottom: 18px;
+        }
+        
+        .zone-action {
+            font-size: 13px;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        
+        /* Market Nature */
+        .nature-box {
+            padding: 16px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+        
+        .nature-type {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .nature-hint {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* Signal Score */
+        .signal-display {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .signal-score {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        
+        .signal-score.positive { color: #22c55e; text-shadow: 0 0 40px rgba(34, 197, 94, 0.3); }
+        .signal-score.negative { color: #ef4444; text-shadow: 0 0 40px rgba(239, 68, 68, 0.3); }
+        .signal-score.neutral { color: #666; }
+        
+        .signal-label {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        /* Framework */
+        .framework-direction {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+        
+        .fw-label { color: #888; font-size: 13px; }
+        .fw-value { font-size: 18px; font-weight: 700; }
+        .fw-value.bearish { color: #ef4444; }
+        .fw-value.bullish { color: #22c55e; }
+        
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        /* Six Dimensions */
+        .six-dim-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        
+        .dim-card {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        
+        .dim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .dim-name {
+            font-size: 12px;
+            color: #86868b;
+            font-weight: 500;
+        }
+        
+        .dim-signal {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .dim-signal.bullish { background: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.5); }
+        .dim-signal.bearish { background: #ff453a; box-shadow: 0 0 8px rgba(255, 69, 58, 0.5); }
+        .dim-signal.neutral { background: #8e8e93; }
+        
+        .dim-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #f5f5f7;
+        }
+        
+        .dim-detail {
+            font-size: 10px;
+            color: #86868b;
+            line-height: 1.3;
+        }
+        
+        /* 6 Agents */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+        
+        .agent-card {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        
+        .agent-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        
+        .agent-name {
+            font-size: 11px;
+            color: #86868b;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .agent-bias {
+            font-size: 13px;
+            font-weight: 700;
+        }
+        
+        .agent-bias.bullish { color: #34c759; }
+        .agent-bias.bearish { color: #ff453a; }
+        .agent-bias.neutral { color: #8e8e93; }
+        
+        .agent-conf {
+            font-size: 10px;
+            color: #636366;
+            margin-top: 4px;
+        }
+        
+        /* Key Points */
+        .key-points-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .key-point {
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-size: 12px;
+            border-left: 3px solid #f7931a;
+        }
+        
+        .key-point .tag {
+            color: #f7931a;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        
+        /* Right Sidebar */
+        .sidebar-right {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        /* Key Levels */
+        .levels-section {
+            flex: 1;
+        }
+        
+        .level-group {
+            margin-bottom: 16px;
+        }
+        
+        .level-group-title {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .level-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .level-name {
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .level-price {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .level-price.resistance { color: #ff453a; }
+        .level-price.support { color: #34c759; }
+        
+        .level-dist {
+            font-size: 12px;
+            color: #777;
+            margin-left: 8px;
+        }
+        
+        /* Events */
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .event-info {
+            flex: 1;
+        }
+        
+        .event-name {
+            font-size: 14px;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .event-time {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .event-badge {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .event-badge.high {
+            background: rgba(255, 69, 58, 0.15);
+            color: #ff453a;
+        }
+        
+        .event-badge.medium {
+            background: rgba(255, 159, 10, 0.15);
+            color: #ff9f0a;
+        }
+        
+        /* Data Stream */
+        .data-stream {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .stream-item {
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        
+        .stream-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+        
+        .stream-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .stream-value.positive { color: #22c55e; }
+        .stream-value.negative { color: #ef4444; }
+        
+        /* Footer */
+        .footer {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: rgba(20, 20, 30, 0.6);
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        }
+        
+        /* Smart Money Table */
+        .sm-container {
+            padding: 8px 0;
+        }
+        
+        .sm-verdict {
+            background: linear-gradient(135deg, rgba(247,147,26,0.15), rgba(247,147,26,0.05));
+            border: 1px solid rgba(247,147,26,0.3);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        
+        .sm-verdict-changes {
+            font-size: 14px;
+            color: #f5f5f7;
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .sm-verdict-changes .tag {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .sm-verdict-changes .tag.up { color: #34c759; background: rgba(52,199,89,0.15); }
+        .sm-verdict-changes .tag.down { color: #ff453a; background: rgba(255,69,58,0.15); }
+        .sm-verdict-changes .tag.neutral { color: #86868b; background: rgba(142,142,147,0.1); }
+        
+        .sm-verdict-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f7931a;
+            margin-top: 6px;
+        }
+        
+        .sm-verdict-text.bullish { color: #34c759; }
+        .sm-verdict-text.bearish { color: #ff453a; }
+        .sm-verdict-text.neutral { color: #86868b; }
+        
+        .sm-current {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .sm-current-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sm-time {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .sm-ratio {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f7931a;
+        }
+        
+        .sm-current-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .sm-col-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .sm-col-title.long { color: #34c759; }
+        .sm-col-title.short { color: #ff453a; }
+        
+        .sm-stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 5px 0;
+        }
+        
+        .sm-stat-row .label { color: #888; }
+        .sm-stat-row .value { font-weight: 600; }
+        .sm-stat-row .value.long { color: #34c759; }
+        .sm-stat-row .value.short { color: #ff453a; }
+        .sm-stat-row .change { font-size: 11px; margin-left: 6px; font-weight: 500; }
+        .sm-stat-row .change.up { color: #34c759; }
+        .sm-stat-row .change.down { color: #ff453a; }
+        
+        .sm-history-toggle {
+            background: rgba(255,255,255,0.05);
+            border: none;
+            color: #888;
+            padding: 8px;
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        
+        .sm-history-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        
+        .sm-history {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .sm-history.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .sm-table {
+            width: 100%;
+            font-size: 13px;
+            border-collapse: collapse;
+        }
+        
+        .sm-table th {
+            text-align: left;
+            color: #86868b;
+            font-weight: 600;
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            background: rgba(28,28,30,0.98);
+            font-size: 12px;
+        }
+        
+        .sm-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .sm-table tr:hover td {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sm-table .time { color: #86868b; }
+        .sm-table .long { color: #34c759; font-weight: 600; }
+        .sm-table .short { color: #ff453a; font-weight: 600; }
+        .sm-table .pnl-pos { color: #34c759; font-weight: 700; }
+        .sm-table .pnl-neg { color: #ff453a; font-weight: 700; }
+        
+        /* Weekly Framework */
+        .framework-content {
+            padding: 8px 0;
+        }
+        
+        .fw-direction {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .fw-label {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .fw-value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .fw-value.bullish { color: #34c759; }
+        .fw-value.bearish { color: #ff453a; }
+        .fw-value.neutral { color: #8e8e93; }
+        
+        .fw-reasoning {
+            font-size: 13px;
+            color: #bbb;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        
+        .fw-reasoning-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .fw-reasoning-item:last-child {
+            border-bottom: none;
+        }
+        
+        .fw-reasoning-item::before {
+            content: "• ";
+            color: #f7931a;
+            font-weight: bold;
+        }
+        
+        .fw-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .fw-note {
+            font-size: 13px;
+            color: #f7931a;
+            padding: 8px 4px 0;
+            font-weight: 500;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .header { flex-wrap: wrap; gap: 16px; }
+            .six-dim-grid { grid-template-columns: repeat(2, 1fr); }
+            .agents-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">₿</div>
+                <span>Trading Dashboard</span>
+            </div>
+            <div class="price-section">
+                <span class="current-price" id="price">$--,---</span>
+                <span class="price-change up" id="change">+0.00%</span>
+            </div>
+            <div class="header-stats">
+                <div>24H High: <span id="high">--</span></div>
+                <div>24H Low: <span id="low">--</span></div>
+                <div>Vol: <span id="vol">--</span></div>
+            </div>
+        </header>
+        
+        <!-- Left Sidebar -->
+        <aside class="sidebar-left">
+            <!-- Current Zone -->
+            <div class="card">
+                <div class="card-title">当前位置</div>
+                <div class="zone-current">
+                    <div class="zone-badge" id="zone-name">加载中...</div>
+                    <div class="zone-range" id="zone-range">--</div>
+                    <div class="zone-action" id="zone-action">--</div>
+                    <div class="nature-box" id="nature-box">
+                        <div class="nature-type" id="nature-type">--</div>
+                        <div class="nature-hint" id="nature-hint">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Signal Score -->
+            <div class="card">
+                <div class="card-title">信号评分</div>
+                <div class="signal-display">
+                    <div class="signal-score neutral" id="signal-score">0.0</div>
+                    <div class="signal-label" id="signal-label">中性</div>
+                    <div class="framework-direction">
+                        <span class="fw-label">周度框架</span>
+                        <span class="fw-value" id="fw-direction">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Real-time Data -->
+            <div class="card">
+                <div class="card-title">实时数据</div>
+                <div class="data-stream" id="data-stream">
+                    <div class="stream-item">
+                        <div class="stream-label">资金费率</div>
+                        <div class="stream-value" id="funding">--</div>
+                    </div>
+                    <div class="stream-item">
+                        <div class="stream-label">OI 变化</div>
+                        <div class="stream-value" id="oi-change">--</div>
+                    </div>
+                    <div class="stream-item">
+                        <div class="stream-label">CVD</div>
+                        <div class="stream-value" id="cvd">--</div>
+                    </div>
+                    <div class="stream-item">
+                        <div class="stream-label">CB溢价</div>
+                        <div class="stream-value" id="premium">--</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Six Dimensions -->
+            <div class="card">
+                <div class="card-title">六维分析</div>
+                <div class="six-dim-grid" id="six-dim">
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">EMA多周期</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">布林带</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">MACD/RSI</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">Coinbase溢价</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">清算数据</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">订单流</span>
+                            <span class="dim-signal neutral"></span>
+                        </div>
+                        <div class="dim-value">--</div>
+                        <div class="dim-detail">加载中...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 6 Agents -->
+            <div class="card">
+                <div class="card-title">6 Agent 分析</div>
+                <div class="agents-grid" id="agents">
+                    <div class="agent-card"><div class="agent-icon">📊</div><div class="agent-name">衍生品</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                    <div class="agent-card"><div class="agent-icon">📈</div><div class="agent-name">技术面</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                    <div class="agent-card"><div class="agent-icon">💹</div><div class="agent-name">订单流</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                    <div class="agent-card"><div class="agent-icon">🎰</div><div class="agent-name">期权</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                    <div class="agent-card"><div class="agent-icon">🌍</div><div class="agent-name">宏观</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                    <div class="agent-card"><div class="agent-icon">⛓️</div><div class="agent-name">链上</div><div class="agent-bias neutral">--</div><div class="agent-conf">--</div></div>
+                </div>
+            </div>
+            
+            <!-- Smart Money 聪明钱 -->
+            <div class="card">
+                <div class="card-title">🧠 聪明钱监控</div>
+                <div class="sm-container" id="smartmoney">
+                    <!-- 变化判断 -->
+                    <div class="sm-verdict" id="sm-verdict">
+                        <div class="sm-verdict-changes" id="sm-changes">加载中...</div>
+                        <div class="sm-verdict-text" id="sm-verdict-text">--</div>
+                    </div>
+                    
+                    <!-- 当前数据 -->
+                    <div class="sm-current">
+                        <div class="sm-current-header">
+                            <span class="sm-time" id="sm-time">--:--</span>
+                            <span class="sm-ratio" id="sm-ratio">多空比 --%</span>
+                        </div>
+                        <div class="sm-current-grid">
+                            <div class="sm-col">
+                                <div class="sm-col-title long">🟢 多头</div>
+                                <div class="sm-stat-row">
+                                    <span class="label">人数</span>
+                                    <span class="value long" id="sm-long-traders">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">持仓</span>
+                                    <span class="value long" id="sm-long-pos">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">均价</span>
+                                    <span class="value long" id="sm-long-entry">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">盈亏</span>
+                                    <span class="value" id="sm-long-pnl">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">盈利%</span>
+                                    <span class="value long" id="sm-long-profit">--</span>
+                                </div>
+                            </div>
+                            <div class="sm-col">
+                                <div class="sm-col-title short">🔴 空头</div>
+                                <div class="sm-stat-row">
+                                    <span class="label">人数</span>
+                                    <span class="value short" id="sm-short-traders">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">持仓</span>
+                                    <span class="value short" id="sm-short-pos">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">均价</span>
+                                    <span class="value short" id="sm-short-entry">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">盈亏</span>
+                                    <span class="value" id="sm-short-pnl">--</span>
+                                </div>
+                                <div class="sm-stat-row">
+                                    <span class="label">盈利%</span>
+                                    <span class="value short" id="sm-short-profit">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 历史记录折叠 -->
+                    <button class="sm-history-toggle" onclick="toggleSmHistory()">
+                        📜 查看历史记录 (最近30条) ▼
+                    </button>
+                    <div class="sm-history" id="sm-history">
+                        <table class="sm-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>价格</th>
+                                    <th>多头(BTC)</th>
+                                    <th>变化</th>
+                                    <th>多头均价</th>
+                                    <th>空头(BTC)</th>
+                                    <th>变化</th>
+                                    <th>空头均价</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sm-history-body">
+                                <tr><td colspan="8" style="text-align:center;color:#666;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Key Points -->
+            <div class="card">
+                <div class="card-title">关键要点</div>
+                <div class="key-points-list" id="key-points">
+                    <div class="key-point"><span class="tag">[LOADING]</span>加载中...</div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Right Sidebar -->
+        <aside class="sidebar-right">
+            <!-- Key Levels -->
+            <div class="card levels-section">
+                <div class="card-title">关键价位</div>
+                <div class="level-group">
+                    <div class="level-group-title">🔴 压力区</div>
+                    <div id="resistance-levels">
+                        <div class="level-item"><span class="level-name">加载中...</span><span class="level-price resistance">--</span></div>
+                    </div>
+                </div>
+                <div class="level-group">
+                    <div class="level-group-title">🟢 支撑区</div>
+                    <div id="support-levels">
+                        <div class="level-item"><span class="level-name">加载中...</span><span class="level-price support">--</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Weekly Framework -->
+            <div class="card">
+                <div class="card-title">📋 周度框架</div>
+                <div class="framework-content" id="framework-content">
+                    <div class="fw-direction">
+                        <span class="fw-label">方向</span>
+                        <span class="fw-value bearish" id="fw-bias">🐻 主空</span>
+                    </div>
+                    <div class="fw-reasoning" id="fw-reasoning">
+                        <!-- 核心逻辑列表 -->
+                    </div>
+                    <div class="fw-status">
+                        <span class="fw-label">当前</span>
+                        <span class="fw-value" id="fw-state">--</span>
+                    </div>
+                    <div class="fw-note" id="fw-note"></div>
+                </div>
+            </div>
+            
+            <!-- Events -->
+            <div class="card">
+                <div class="card-title">重要事件</div>
+                <div id="events">
+                    <div class="event-item">
+                        <div class="event-info">
+                            <div class="event-name">加载中...</div>
+                            <div class="event-time">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>实时更新</span>
+            </div>
+            <div id="update-time">最后更新: --</div>
+            <div>刷新间隔: 30秒</div>
+        </footer>
+    </div>
+    
+    <script>
+        const API = '';
+        const biasText = {bullish: '看多', bearish: '看空', neutral: '中性'};
+        const biasClass = {bullish: 'bullish', bearish: 'bearish', neutral: 'neutral'};
+        const agentIcons = {derivatives: '📊', technical: '📈', orderflow: '💹', options: '🎰', macro: '🌍', onchain: '⛓️', smartmoney: '🧠'};
+        const agentNames = {derivatives: '衍生品', technical: '技术面', orderflow: '订单流', options: '期权', macro: '宏观', onchain: '链上', smartmoney: '聪明钱'};
+        
+        function fmt(n) { return n ? '$' + Math.round(n).toLocaleString() : '--'; }
+        function fmtPct(n) { return n ? (n >= 0 ? '+' : '') + n.toFixed(2) + '%' : '--'; }
+        
+        async function load() {
+            try {
+                const r = await fetch(API + '/api/all');
+                const d = await r.json();
+                update(d);
+            } catch(e) { console.error(e); }
+        }
+        
+        function update(d) {
+            // Price
+            if (d.price) {
+                document.getElementById('price').textContent = fmt(d.price.price);
+                const ch = d.price.change_24h || 0;
+                const chEl = document.getElementById('change');
+                chEl.textContent = fmtPct(ch) + ' 24H';
+                chEl.className = 'price-change ' + (ch >= 0 ? 'up' : 'down');
+                document.getElementById('high').textContent = fmt(d.price.high_24h);
+                document.getElementById('low').textContent = fmt(d.price.low_24h);
+                document.getElementById('vol').textContent = '$' + (d.price.volume_24h / 1e9).toFixed(2) + 'B';
+            }
+            
+            // Zone
+            const z = d.key_levels?.current_zone;
+            document.getElementById('zone-name').textContent = z ? z.zone.name : '区间外';
+            document.getElementById('zone-range').textContent = z ? fmt(z.zone.range[0]) + ' - ' + fmt(z.zone.range[1]) : '未在预设交易区间';
+            document.getElementById('zone-action').textContent = z ? z.zone.action || '--' : '--';
+            
+            // Nature
+            const nat = d.market_state?.market_nature;
+            if (nat) {
+                document.getElementById('nature-type').textContent = nat.description || nat.type;
+                document.getElementById('nature-hint').textContent = nat.action_hint || '';
+            }
+            
+            // Signal Score
+            const score = d.signal_score?.final_score || 0;
+            const scoreEl = document.getElementById('signal-score');
+            scoreEl.textContent = (score >= 0 ? '+' : '') + score.toFixed(1);
+            scoreEl.className = 'signal-score ' + (score > 2 ? 'positive' : score < -2 ? 'negative' : 'neutral');
+            document.getElementById('signal-label').textContent = d.signal_score?.interpretation || '中性';
+            
+            // Framework
+            const fwEl = document.getElementById('fw-direction');
+            fwEl.textContent = d.framework?.direction_cn || '--';
+            fwEl.className = 'fw-value ' + (d.framework?.direction || '');
+            
+            // Six Dimensions - 改成多周期显示
+            const dims = d.six_dimensions || {};
+            const techRaw = d.technical_raw || {};
+            const timeframes = ['15m', '1h', '4h', '1d'];
+            
+            // EMA 多周期
+            const ema = dims.ema?.timeframes || {};
+            let emaDetail = timeframes.map(tf => `${tf}: ${ema[tf] || '--'}`).join(' | ');
+            
+            // MACD 多周期
+            const macd = dims.macd_rsi?.macd || {};
+            let macdDetail = timeframes.map(tf => `${tf}: ${macd[tf] || '--'}`).join(' | ');
+            
+            // RSI 多周期
+            const rsi = dims.macd_rsi?.rsi || {};
+            let rsiDetail = timeframes.map(tf => `${tf}: ${rsi[tf] ? Math.round(rsi[tf]) : '--'}`).join(' | ');
+            
+            // 布林带多周期
+            let bollDetail = timeframes.map(tf => {
+                const pos = techRaw[tf]?.bollinger?.position;
+                return `${tf}: ${pos ? Math.round(pos) + '%' : '--'}`;
+            }).join(' | ');
+            
+            const dimConfigs = [
+                {key: 'ema', name: 'EMA 均线', getValue: d => d.bias ? biasText[d.bias] : '--', getDetail: () => emaDetail},
+                {key: 'macd', name: 'MACD', getValue: () => macd['4h'] || '--', getDetail: () => macdDetail},
+                {key: 'rsi', name: 'RSI', getValue: () => rsi['4h'] ? Math.round(rsi['4h']) : '--', getDetail: () => rsiDetail},
+                {key: 'bollinger', name: '布林带', getValue: d => Math.round(d.position_pct || 50) + '%', getDetail: () => bollDetail},
+                {key: 'coinbase_premium', name: 'CB溢价', getValue: d => fmtPct(d.premium_pct), getDetail: d => d.description || ''},
+                {key: 'liquidation', name: '爆仓/多空比', getValue: d => {
+                    const ratio = Number(d.long_short_ratio) || 50;
+                    return `${Math.round(ratio)}/${Math.round(100-ratio)}`;
+                }, getDetail: d => {
+                    const funding = d.funding ? (d.funding * 100).toFixed(4) + '%' : '--';
+                    const oi = d.oi_change_24h ? (d.oi_change_24h >= 0 ? '+' : '') + d.oi_change_24h.toFixed(1) + '%' : '--';
+                    return `资金费率: ${funding} | OI: ${oi}`;
+                }}
+            ];
+            
+            let dimHtml = '';
+            for (const cfg of dimConfigs) {
+                const dim = dims[cfg.key] || dims.macd_rsi || {};
+                const signal = dim.signal || dim.bias || 'neutral';
+                dimHtml += `
+                    <div class="dim-card">
+                        <div class="dim-header">
+                            <span class="dim-name">${cfg.name}</span>
+                            <span class="dim-signal ${biasClass[signal] || 'neutral'}"></span>
+                        </div>
+                        <div class="dim-value">${cfg.getValue(dim)}</div>
+                        <div class="dim-detail">${cfg.getDetail(dim)}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('six-dim').innerHTML = dimHtml;
+            
+            // Agents
+            let agentHtml = '';
+            for (const [key, agent] of Object.entries(d.agents || {})) {
+                const bias = agent.bias || 'neutral';
+                agentHtml += `
+                    <div class="agent-card">
+                        <div class="agent-icon">${agentIcons[key] || '📊'}</div>
+                        <div class="agent-name">${agentNames[key] || key}</div>
+                        <div class="agent-bias ${biasClass[bias]}">${biasText[bias]}</div>
+                        <div class="agent-conf">置信度 ${agent.confidence || 5}/10</div>
+                    </div>
+                `;
+            }
+            document.getElementById('agents').innerHTML = agentHtml || document.getElementById('agents').innerHTML;
+            
+            // Key Points
+            const points = [];
+            for (const [key, agent] of Object.entries(d.agents || {})) {
+                for (const kp of (agent.key_points || []).slice(0, 2)) {
+                    points.push({tag: agentNames[key] || key, text: kp});
+                }
+            }
+            let pointsHtml = '';
+            for (const p of points.slice(0, 8)) {
+                pointsHtml += `<div class="key-point"><span class="tag">[${p.tag}]</span>${p.text}</div>`;
+            }
+            document.getElementById('key-points').innerHTML = pointsHtml || '<div class="key-point">暂无数据</div>';
+            
+            // Data Stream
+            const deriv = d.agents?.derivatives || {};
+            const flow = d.agents?.orderflow || {};
+            const prem = d.six_dimensions?.coinbase_premium || {};
+            
+            for (const kp of deriv.key_points || []) {
+                if (kp.includes('资金费率')) document.getElementById('funding').textContent = kp.split(' ')[1] || '--';
+                if (kp.includes('OI')) document.getElementById('oi-change').textContent = kp.match(/[+-]?\d+\.?\d*%/) || '--';
+            }
+            for (const kp of flow.key_points || []) {
+                if (kp.includes('CVD')) document.getElementById('cvd').textContent = kp.split(':')[1]?.trim() || '--';
+            }
+            document.getElementById('premium').textContent = fmtPct(prem.premium_pct);
+            
+            // Levels
+            let resHtml = '';
+            for (const z of (d.key_levels?.resistance_zones || []).slice(0, 3)) {
+                const dist = d.price?.price ? ((z.range[0] - d.price.price) / d.price.price * 100).toFixed(1) : '--';
+                resHtml += `
+                    <div class="level-item">
+                        <span class="level-name">${z.name}</span>
+                        <span class="level-price resistance">${fmt(z.range[0])}-${fmt(z.range[1])}<span class="level-dist">${dist}%</span></span>
+                    </div>
+                `;
+            }
+            document.getElementById('resistance-levels').innerHTML = resHtml || '<div class="level-item"><span>无数据</span></div>';
+            
+            let supHtml = '';
+            for (const z of (d.key_levels?.support_zones || []).slice(0, 3)) {
+                const dist = d.price?.price ? ((z.range[1] - d.price.price) / d.price.price * 100).toFixed(1) : '--';
+                supHtml += `
+                    <div class="level-item">
+                        <span class="level-name">${z.name}</span>
+                        <span class="level-price support">${fmt(z.range[0])}-${fmt(z.range[1])}<span class="level-dist">${dist}%</span></span>
+                    </div>
+                `;
+            }
+            document.getElementById('support-levels').innerHTML = supHtml || '<div class="level-item"><span>无数据</span></div>';
+            
+            // Events
+            let evtHtml = '';
+            for (const e of (d.framework?.events || []).slice(0, 4)) {
+                const badge = e.importance === 'high' ? '<span class="event-badge high">重要</span>' : 
+                             e.importance === 'medium' ? '<span class="event-badge medium">关注</span>' : '';
+                evtHtml += `
+                    <div class="event-item">
+                        <div class="event-info">
+                            <div class="event-name">${e.name}</div>
+                            <div class="event-time">${e.date} ${e.time || ''}</div>
+                        </div>
+                        ${badge}
+                    </div>
+                `;
+            }
+            document.getElementById('events').innerHTML = evtHtml || '<div class="event-item"><div class="event-info"><div class="event-name">暂无事件</div></div></div>';
+            
+            // Weekly Framework
+            const fw = d.framework || {};
+            if (fw.direction) {
+                const biasIcon = fw.direction === 'bearish' ? '🐻' : fw.direction === 'bullish' ? '🐂' : '⚖️';
+                const biasLabel = fw.direction_cn || (fw.direction === 'bearish' ? '主空' : fw.direction === 'bullish' ? '主多' : '观望');
+                document.getElementById('fw-bias').textContent = biasIcon + ' ' + biasLabel + ' (' + (fw.confidence || 5) + '/10)';
+                document.getElementById('fw-bias').className = 'fw-value ' + fw.direction;
+            }
+            
+            // 核心逻辑列表
+            if (fw.reasoning && fw.reasoning.length > 0) {
+                let reasoningHtml = '';
+                for (const r of fw.reasoning) {
+                    reasoningHtml += `<div class="fw-reasoning-item">${r}</div>`;
+                }
+                document.getElementById('fw-reasoning').innerHTML = reasoningHtml;
+            }
+            
+            // 当前状态
+            const fwStatus = fw.current_status || {};
+            const statusText = fwStatus.note || fwStatus.price_zone || d.key_levels?.current_status || '--';
+            document.getElementById('fw-state').textContent = statusText;
+            
+            // 重要事件提醒
+            const upcomingEvent = (fw.events || []).find(e => e.importance === 'high');
+            if (upcomingEvent) {
+                document.getElementById('fw-note').textContent = '⚠️ ' + upcomingEvent.name + ' ' + upcomingEvent.date + ' ' + (upcomingEvent.time || '');
+            }
+            
+            // Smart Money - 新版表格
+            const sm = d.smartmoney || {};
+            const smCurrent = sm.current || {};
+            const smHistory = sm.history || [];
+            const smChanges = sm.changes || {};
+            
+            // 获取 OI 和 CVD 数据
+            const derivData = d.agents?.derivatives || {};
+            const flowData = d.agents?.orderflow || {};
+            let oiChange = '--';
+            let cvdBias = '--';
+            for (const kp of derivData.key_points || []) {
+                if (kp.includes('OI')) oiChange = kp.match(/[+-]?\d+\.?\d*%/)?.[0] || '--';
+            }
+            cvdBias = flowData.bias === 'bullish' ? '买方主导' : flowData.bias === 'bearish' ? '卖方主导' : '均衡';
+            
+            function fmtM(n) { return n ? '$' + (n / 1e6).toFixed(1) + 'M' : '--'; }
+            function fmtB(n) { return n ? '$' + (n / 1e9).toFixed(2) + 'B' : '--'; }
+            function fmtBTC(usdt, price) { return price ? Math.round(usdt / price).toLocaleString() + ' BTC' : '--'; }
+            function fmtPnlClass(n) { return n >= 0 ? 'pnl-pos' : 'pnl-neg'; }
+            function fmtChange(n) {
+                if (!n) return '';
+                const sign = n >= 0 ? '+' : '';
+                return `<span class="change ${n >= 0 ? 'up' : 'down'}">${sign}${(n/1e6).toFixed(1)}M</span>`;
+            }
+            function fmtChangeNum(n) {
+                if (!n) return '';
+                const sign = n >= 0 ? '+' : '';
+                return `<span class="change ${n >= 0 ? 'up' : 'down'}">${sign}${n}</span>`;
+            }
+            function fmtChangeBTC(usdt, price) {
+                if (!usdt || !price) return '';
+                const btc = Math.round(usdt / price);
+                const sign = btc >= 0 ? '+' : '';
+                return `<span class="change ${btc >= 0 ? 'up' : 'down'}">${sign}${btc} BTC</span>`;
+            }
+            
+            // 当前数据
+            if (smCurrent.price) {
+                const price = smCurrent.price;
+                document.getElementById('sm-time').textContent = smCurrent.snapshot_time?.split(' ')[1] || '--';
+                document.getElementById('sm-ratio').textContent = '多空比 ' + smCurrent.long_short_ratio_pct?.toFixed(0) + '%';
+                
+                // 计算 BTC 数量
+                const longBTC = Math.round(smCurrent.long_position_usdt / price);
+                const shortBTC = Math.round(smCurrent.short_position_usdt / price);
+                const longChangeBTC = smChanges.long_position_usdt ? Math.round(smChanges.long_position_usdt / price) : 0;
+                const shortChangeBTC = smChanges.short_position_usdt ? Math.round(smChanges.short_position_usdt / price) : 0;
+                const priceChange = smChanges.price || 0;
+                
+                // 变化判断区
+                let changeTags = [];
+                if (longChangeBTC !== 0) {
+                    const cls = longChangeBTC > 0 ? 'up' : 'down';
+                    changeTags.push(`<span class="tag ${cls}">多头 ${longChangeBTC > 0 ? '+' : ''}${longChangeBTC} BTC</span>`);
+                }
+                if (shortChangeBTC !== 0) {
+                    const cls = shortChangeBTC > 0 ? 'up' : 'down';
+                    changeTags.push(`<span class="tag ${cls}">空头 ${shortChangeBTC > 0 ? '+' : ''}${shortChangeBTC} BTC</span>`);
+                }
+                changeTags.push(`<span class="tag neutral">OI ${oiChange}</span>`);
+                changeTags.push(`<span class="tag neutral">CVD ${cvdBias}</span>`);
+                if (priceChange !== 0) {
+                    const cls = priceChange > 0 ? 'up' : 'down';
+                    changeTags.push(`<span class="tag ${cls}">价格 ${priceChange > 0 ? '+' : ''}$${Math.round(priceChange)}</span>`);
+                }
+                document.getElementById('sm-changes').innerHTML = changeTags.join('');
+                
+                // 判断逻辑
+                let verdict = '';
+                let verdictClass = 'neutral';
+                
+                if (longChangeBTC > 50 && shortChangeBTC < -50) {
+                    verdict = '→ 多头加仓 + 空头减仓，看涨信号';
+                    verdictClass = 'bullish';
+                } else if (longChangeBTC < -50 && shortChangeBTC > 50) {
+                    verdict = '→ 多头减仓 + 空头加仓，看跌信号';
+                    verdictClass = 'bearish';
+                } else if (longChangeBTC > 50 && shortChangeBTC > 50) {
+                    verdict = '→ 多空同步加仓，等待方向选择';
+                    verdictClass = 'neutral';
+                } else if (longChangeBTC < -50 && shortChangeBTC < -50) {
+                    verdict = '→ 多空同步减仓，观望情绪';
+                    verdictClass = 'neutral';
+                } else if (longChangeBTC > 100 && priceChange < -50) {
+                    verdict = '→ 多头加仓但价格跌，可能抄底或被套';
+                    verdictClass = 'neutral';
+                } else if (shortChangeBTC > 100 && priceChange > 50) {
+                    verdict = '→ 空头加仓但价格涨，可能逼空';
+                    verdictClass = 'bullish';
+                } else if (longChangeBTC < -100 && priceChange > 0) {
+                    verdict = '→ 多头减仓但价格撑住，有其他买盘';
+                    verdictClass = 'bullish';
+                } else if (shortChangeBTC < -100 && priceChange < 0) {
+                    verdict = '→ 空头减仓但价格跌，有其他卖压';
+                    verdictClass = 'bearish';
+                } else {
+                    verdict = '→ 变化不显著，继续观察';
+                    verdictClass = 'neutral';
+                }
+                
+                document.getElementById('sm-verdict-text').textContent = verdict;
+                document.getElementById('sm-verdict-text').className = 'sm-verdict-text ' + verdictClass;
+                
+                // 多头
+                document.getElementById('sm-long-traders').innerHTML = smCurrent.long_traders + fmtChangeNum(smChanges.long_traders);
+                document.getElementById('sm-long-pos').innerHTML = fmtB(smCurrent.long_position_usdt) + ` (${longBTC.toLocaleString()} BTC)` + fmtChangeBTC(smChanges.long_position_usdt, price);
+                document.getElementById('sm-long-entry').textContent = '$' + Math.round(smCurrent.long_avg_entry_price).toLocaleString();
+                document.getElementById('sm-long-pnl').innerHTML = `<span class="${fmtPnlClass(smCurrent.long_unrealized_pnl)}">${fmtM(smCurrent.long_unrealized_pnl)}</span>`;
+                document.getElementById('sm-long-profit').textContent = smCurrent.long_profitable_pct?.toFixed(1) + '%';
+                
+                // 空头
+                document.getElementById('sm-short-traders').innerHTML = smCurrent.short_traders + fmtChangeNum(smChanges.short_traders);
+                document.getElementById('sm-short-pos').innerHTML = fmtM(smCurrent.short_position_usdt) + ` (${shortBTC.toLocaleString()} BTC)` + fmtChangeBTC(smChanges.short_position_usdt, price);
+                document.getElementById('sm-short-entry').textContent = '$' + Math.round(smCurrent.short_avg_entry_price).toLocaleString();
+                document.getElementById('sm-short-pnl').innerHTML = `<span class="${fmtPnlClass(smCurrent.short_unrealized_pnl)}">${fmtM(smCurrent.short_unrealized_pnl)}</span>`;
+                document.getElementById('sm-short-profit').textContent = smCurrent.short_profitable_pct?.toFixed(1) + '%';
+            }
+            
+            // 历史表格 - 带变化列和均价
+            if (smHistory.length > 0) {
+                let histHtml = '';
+                for (let i = 0; i < smHistory.length; i++) {
+                    const row = smHistory[i];
+                    const prev = smHistory[i + 1];  // 上一条（时间更早）
+                    const time = row.snapshot_time?.split(' ')[1]?.substring(0, 5) || '--';
+                    const rowPrice = row.price || 1;
+                    const longBtc = Math.round(row.long_position_usdt / rowPrice);
+                    const shortBtc = Math.round(row.short_position_usdt / rowPrice);
+                    const longEntry = Math.round(row.long_avg_entry_price || 0);
+                    const shortEntry = Math.round(row.short_avg_entry_price || 0);
+                    
+                    // 计算变化
+                    let longChange = '', shortChange = '';
+                    if (prev) {
+                        const prevPrice = prev.price || 1;
+                        const prevLongBtc = Math.round(prev.long_position_usdt / prevPrice);
+                        const prevShortBtc = Math.round(prev.short_position_usdt / prevPrice);
+                        const longDiff = longBtc - prevLongBtc;
+                        const shortDiff = shortBtc - prevShortBtc;
+                        
+                        if (longDiff !== 0) {
+                            const cls = longDiff > 0 ? 'pnl-pos' : 'pnl-neg';
+                            longChange = `<span class="${cls}">${longDiff > 0 ? '+' : ''}${longDiff}</span>`;
+                        } else {
+                            longChange = '<span style="color:#636366">-</span>';
+                        }
+                        
+                        if (shortDiff !== 0) {
+                            const cls = shortDiff > 0 ? 'pnl-pos' : 'pnl-neg';
+                            shortChange = `<span class="${cls}">${shortDiff > 0 ? '+' : ''}${shortDiff}</span>`;
+                        } else {
+                            shortChange = '<span style="color:#636366">-</span>';
+                        }
+                    } else {
+                        longChange = '<span style="color:#636366">--</span>';
+                        shortChange = '<span style="color:#636366">--</span>';
+                    }
+                    
+                    histHtml += `
+                        <tr>
+                            <td class="time">${time}</td>
+                            <td>$${Math.round(row.price).toLocaleString()}</td>
+                            <td class="long">${longBtc.toLocaleString()}</td>
+                            <td>${longChange}</td>
+                            <td class="long">$${longEntry.toLocaleString()}</td>
+                            <td class="short">${shortBtc.toLocaleString()}</td>
+                            <td>${shortChange}</td>
+                            <td class="short">$${shortEntry.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+                document.getElementById('sm-history-body').innerHTML = histHtml;
+            }
+            
+            // Update time
+            document.getElementById('update-time').textContent = '最后更新: ' + new Date().toLocaleTimeString('zh-CN');
+        }
+        
+        // Smart Money 历史展开/收起
+        function toggleSmHistory() {
+            const el = document.getElementById('sm-history');
+            el.classList.toggle('expanded');
+            const btn = document.querySelector('.sm-history-toggle');
+            btn.textContent = el.classList.contains('expanded') 
+                ? '📜 收起历史记录 ▲' 
+                : '📜 查看历史记录 (最近30条) ▼';
+        }
+        
+        load();
+        setInterval(load, 30000);
+    </script>
+</body>
+</html>
