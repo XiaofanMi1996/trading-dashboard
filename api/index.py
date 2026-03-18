@@ -260,6 +260,51 @@ async def get_key_levels():
         return {"error": str(e)}
 
 
+def get_daily_comparison():
+    """获取较昨日对比数据 - Vercel 版本使用 SmartMoney 内存数据"""
+    try:
+        # Vercel 无法持久化存储，从 SmartMoney 历史获取
+        sm_analyst = SmartMoneyAnalyst("BTCUSDT")
+        sm_data = sm_analyst.analyze()
+        
+        history = sm_data.get("history", [])
+        current = sm_data.get("current", {})
+        
+        if not current or len(history) < 2:
+            return None
+        
+        # 今天数据 = 当前
+        today_data = {
+            "time": current.get("snapshot_time", "").split(" ")[1][:5] if " " in current.get("snapshot_time", "") else "now",
+            "price": current.get("price", 0),
+            "sm_long_usdt": current.get("long_position_usdt", 0),
+            "sm_short_usdt": current.get("short_position_usdt", 0),
+            "sm_long_short_ratio": current.get("long_short_ratio_pct", 50),
+            "oi": 0,
+            "funding_rate": 0
+        }
+        
+        # 昨天数据 = 历史最后一条（约24小时前）
+        oldest = history[-1] if history else current
+        yesterday_data = {
+            "time": oldest.get("snapshot_time", "").split(" ")[1][:5] if " " in oldest.get("snapshot_time", "") else "24h ago",
+            "price": oldest.get("price", 0),
+            "sm_long_usdt": oldest.get("long_position_usdt", 0),
+            "sm_short_usdt": oldest.get("short_position_usdt", 0),
+            "sm_long_short_ratio": oldest.get("long_short_ratio_pct", 50),
+            "oi": 0,
+            "funding_rate": 0
+        }
+        
+        return {
+            "today": today_data,
+            "yesterday": yesterday_data,
+            "compare_time": "vs 历史记录"
+        }
+    except:
+        return None
+
+
 @app.get("/api/all")
 async def get_all():
     """获取所有数据（一次请求）"""
@@ -277,6 +322,9 @@ async def get_all():
     except:
         smartmoney = {}
     
+    # Daily Comparison
+    daily_comparison = get_daily_comparison()
+    
     return {
         "timestamp": get_timestamp(),
         "price": price_data,
@@ -287,7 +335,8 @@ async def get_all():
         "framework": framework.get("framework", {}),
         "key_levels": key_levels,
         "market_state": market_state.get("state", {}),
-        "smartmoney": smartmoney
+        "smartmoney": smartmoney,
+        "daily_comparison": daily_comparison
     }
 
 
