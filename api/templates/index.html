@@ -861,9 +861,9 @@
                 </div>
             </div>
             
-            <!-- Daily Comparison -->
+            <!-- 15分钟对比 -->
             <div class="card">
-                <div class="card-title">📊 较昨日对比 <span class="daily-time" id="daily-time">(00:00 UTC)</span></div>
+                <div class="card-title">📊 较15分钟前对比 <span class="daily-time" id="daily-time"></span></div>
                 <div class="daily-compare" id="daily-compare">
                     <div class="daily-row">
                         <span class="daily-label">价格</span>
@@ -1474,12 +1474,19 @@
                 document.getElementById('sm-short-profit').textContent = smCurrent.short_profitable_pct?.toFixed(1) + '%';
             }
             
-            // 历史表格 - 带变化列和均价
+            // 历史表格 - 只显示每15分钟的数据点
             if (smHistory.length > 0) {
+                // 筛选每15分钟整点的数据 (00, 15, 30, 45)
+                const filtered = smHistory.filter(row => {
+                    const time = row.snapshot_time?.split(' ')[1] || '';
+                    const minute = parseInt(time.split(':')[1] || '0');
+                    return minute % 15 < 3;  // 允许3分钟误差
+                });
+                
                 let histHtml = '';
-                for (let i = 0; i < smHistory.length; i++) {
-                    const row = smHistory[i];
-                    const prev = smHistory[i + 1];  // 上一条（时间更早）
+                for (let i = 0; i < filtered.length; i++) {
+                    const row = filtered[i];
+                    const prev = filtered[i + 1];  // 上一条（时间更早的15分钟点）
                     const time = row.snapshot_time?.split(' ')[1]?.substring(0, 5) || '--';
                     const rowPrice = row.price || 1;
                     const longBtc = Math.round(row.long_position_usdt / rowPrice);
@@ -1487,7 +1494,7 @@
                     const longEntry = Math.round(row.long_avg_entry_price || 0);
                     const shortEntry = Math.round(row.short_avg_entry_price || 0);
                     
-                    // 计算变化
+                    // 计算变化（对比上一个15分钟数据点）
                     let longChange = '', shortChange = '';
                     if (prev) {
                         const prevPrice = prev.price || 1;
@@ -1530,60 +1537,62 @@
                 document.getElementById('sm-history-body').innerHTML = histHtml;
             }
             
-            // Daily Comparison
-            const daily = d.daily_comparison || {};
-            if (daily.today && daily.yesterday) {
-                const today = daily.today;
-                const yesterday = daily.yesterday;
-                const price = d.price?.price || today.price;
+            // 15分钟对比 - 从 SmartMoney 历史数据中获取
+            const smHistory = sm.history || [];
+            // 筛选15分钟整点的历史记录
+            const history15min = smHistory.filter(row => {
+                const time = row.snapshot_time?.split(' ')[1] || '';
+                const minute = parseInt(time.split(':')[1] || '0');
+                return minute % 15 < 3;  // 允许3分钟误差
+            });
+            
+            if (smCurrent && smCurrent.price && history15min.length > 0) {
+                const price = smCurrent.price;
+                const prev15 = history15min[0];  // 上一个15分钟数据点
+                const prevTime = prev15.snapshot_time?.split(' ')[1]?.substring(0, 5) || '--';
                 
                 // 价格变化
-                const priceChg = price - yesterday.price;
-                const pricePct = (priceChg / yesterday.price * 100).toFixed(2);
+                const priceChg = price - prev15.price;
+                const pricePct = prev15.price ? (priceChg / prev15.price * 100).toFixed(2) : '--';
                 const priceEl = document.getElementById('daily-price');
                 priceEl.textContent = `${priceChg >= 0 ? '+' : ''}$${Math.round(priceChg).toLocaleString()} (${priceChg >= 0 ? '+' : ''}${pricePct}%)`;
                 priceEl.className = 'daily-value ' + (priceChg >= 0 ? 'up' : 'down');
                 
                 // 聪明钱多头 (BTC)
-                const longBtcToday = Math.round(today.sm_long_usdt / price);
-                const longBtcYest = Math.round(yesterday.sm_long_usdt / yesterday.price);
-                const longChg = longBtcToday - longBtcYest;
+                const longBtcNow = Math.round(smCurrent.long_position_usdt / price);
+                const longBtcPrev = Math.round(prev15.long_position_usdt / prev15.price);
+                const longChg = longBtcNow - longBtcPrev;
                 const smLongEl = document.getElementById('daily-sm-long');
                 smLongEl.textContent = `${longChg >= 0 ? '+' : ''}${longChg.toLocaleString()} BTC`;
                 smLongEl.className = 'daily-value ' + (longChg >= 0 ? 'up' : 'down');
                 
                 // 聪明钱空头 (BTC)
-                const shortBtcToday = Math.round(today.sm_short_usdt / price);
-                const shortBtcYest = Math.round(yesterday.sm_short_usdt / yesterday.price);
-                const shortChg = shortBtcToday - shortBtcYest;
+                const shortBtcNow = Math.round(smCurrent.short_position_usdt / price);
+                const shortBtcPrev = Math.round(prev15.short_position_usdt / prev15.price);
+                const shortChg = shortBtcNow - shortBtcPrev;
                 const smShortEl = document.getElementById('daily-sm-short');
                 smShortEl.textContent = `${shortChg >= 0 ? '+' : ''}${shortChg.toLocaleString()} BTC`;
                 smShortEl.className = 'daily-value ' + (shortChg > 0 ? 'down' : shortChg < 0 ? 'up' : 'neutral');
                 
                 // 多空比
-                const ratioToday = today.sm_long_short_ratio || 50;
-                const ratioYest = yesterday.sm_long_short_ratio || 50;
-                const ratioChg = ratioToday - ratioYest;
+                const ratioNow = smCurrent.long_short_ratio_pct || 50;
+                const ratioPrev = prev15.long_short_ratio_pct || 50;
+                const ratioChg = ratioNow - ratioPrev;
                 const ratioEl = document.getElementById('daily-ratio');
-                ratioEl.textContent = `${ratioChg >= 0 ? '+' : ''}${ratioChg.toFixed(1)}% (${ratioToday.toFixed(0)}% → ${ratioYest.toFixed(0)}%)`;
+                ratioEl.textContent = `${ratioChg >= 0 ? '+' : ''}${ratioChg.toFixed(1)}% (${ratioPrev.toFixed(0)}%→${ratioNow.toFixed(0)}%)`;
                 ratioEl.className = 'daily-value ' + (ratioChg >= 0 ? 'up' : 'down');
                 
-                // OI 变化
-                const oiToday = today.oi || 0;
-                const oiYest = yesterday.oi || 0;
-                const oiChgPct = oiYest ? ((oiToday - oiYest) / oiYest * 100).toFixed(1) : '--';
+                // OI 变化 (从六维数据获取)
+                const oiChange = d.six_dimensions?.liquidation?.oi_change_24h || 0;
                 const oiEl = document.getElementById('daily-oi');
-                const oiChgVal = oiToday - oiYest;
-                oiEl.textContent = `${oiChgVal >= 0 ? '+' : ''}$${(oiChgVal / 1e9).toFixed(2)}B (${oiChgVal >= 0 ? '+' : ''}${oiChgPct}%)`;
-                oiEl.className = 'daily-value ' + (oiChgVal >= 0 ? 'up' : 'down');
+                oiEl.textContent = `${oiChange >= 0 ? '+' : ''}${oiChange.toFixed(1)}% (24H)`;
+                oiEl.className = 'daily-value ' + (oiChange >= 0 ? 'up' : 'down');
                 
                 // 资金费率
-                const fundToday = today.funding_rate || 0;
-                const fundYest = yesterday.funding_rate || 0;
-                const fundChg = (fundToday - fundYest) * 100;
+                const funding = d.six_dimensions?.liquidation?.funding || 0;
                 const fundEl = document.getElementById('daily-funding');
-                fundEl.textContent = `${fundChg >= 0 ? '+' : ''}${fundChg.toFixed(4)}% (${(fundToday * 100).toFixed(4)}%)`;
-                fundEl.className = 'daily-value ' + (fundChg >= 0 ? 'up' : 'down');
+                fundEl.textContent = `${(funding * 100).toFixed(4)}%`;
+                fundEl.className = 'daily-value ' + (funding >= 0 ? 'up' : 'down');
                 
                 // 综合判断
                 let summaryText = '';
@@ -1591,30 +1600,28 @@
                 
                 // 计算信号
                 let bullSignals = 0, bearSignals = 0;
-                if (longChg > 100) bullSignals++;
-                if (longChg < -100) bearSignals++;
-                if (shortChg < -100) bullSignals++;
-                if (shortChg > 100) bearSignals++;
-                if (ratioChg > 2) bullSignals++;
-                if (ratioChg < -2) bearSignals++;
-                if (oiChgVal > 0 && priceChg > 0) bullSignals++;
-                if (oiChgVal > 0 && priceChg < 0) bearSignals++;
-                if (fundChg > 0.005) bearSignals++;  // 费率变正=多头拥挤
-                if (fundChg < -0.005) bullSignals++; // 费率变负=空头拥挤
+                if (longChg > 50) bullSignals++;
+                if (longChg < -50) bearSignals++;
+                if (shortChg < -50) bullSignals++;
+                if (shortChg > 50) bearSignals++;
+                if (ratioChg > 1) bullSignals++;
+                if (ratioChg < -1) bearSignals++;
+                if (priceChg > 100) bullSignals++;
+                if (priceChg < -100) bearSignals++;
                 
-                if (bullSignals >= 3 && bullSignals > bearSignals) {
-                    summaryText = `🐂 偏多信号 (${bullSignals}/${bullSignals + bearSignals})：聪明钱倾向做多`;
+                if (bullSignals >= 2 && bullSignals > bearSignals) {
+                    summaryText = `🐂 偏多 (${bullSignals}/${bullSignals + bearSignals})`;
                     summaryClass = 'bullish';
-                } else if (bearSignals >= 3 && bearSignals > bullSignals) {
-                    summaryText = `🐻 偏空信号 (${bearSignals}/${bullSignals + bearSignals})：聪明钱倾向做空`;
+                } else if (bearSignals >= 2 && bearSignals > bullSignals) {
+                    summaryText = `🐻 偏空 (${bearSignals}/${bullSignals + bearSignals})`;
                     summaryClass = 'bearish';
                 } else {
-                    summaryText = `⚖️ 信号中性 (多${bullSignals}/空${bearSignals})：等待方向`;
+                    summaryText = `⚖️ 中性 (多${bullSignals}/空${bearSignals})`;
                     summaryClass = 'neutral';
                 }
                 
                 document.getElementById('daily-summary').innerHTML = `<div class="daily-summary-text ${summaryClass}">${summaryText}</div>`;
-                document.getElementById('daily-time').textContent = `(vs 昨日 ${yesterday.time || '00:00 UTC'})`;
+                document.getElementById('daily-time').textContent = `(vs ${prevTime})`;
             }
             
             // Update time
@@ -1632,7 +1639,7 @@
         }
         
         load();
-        setInterval(load, 30000);
+        setInterval(load, 60000);  // 每1分钟更新
     </script>
 </body>
 </html>
