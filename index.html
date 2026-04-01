@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KazX · Signal Lab</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --green: #3fb950;
+    --red: #f85149;
+    --amber: #d29922;
+    --blue: #388bfd;
+    --purple: #a371f7;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* LEFT */
+  .left { flex: 1; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+  .topbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .topbar-price { font-size: 18px; font-weight: 600; }
+  .topbar-change { font-size: 12px; padding: 2px 7px; border-radius: 20px; }
+  .up { background: rgba(63,185,80,.15); color: var(--green); }
+  .dn { background: rgba(248,81,73,.15); color: var(--red); }
+  .topbar-meta { font-size: 11px; color: var(--text2); margin-left: 4px; }
+  .tf-bar { display: flex; gap: 4px; margin-left: auto; }
+  .tf-btn { font-size: 11px; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+  .tf-btn:hover { border-color: var(--text2); color: var(--text); }
+  .tf-btn.active { background: var(--bg3); border-color: var(--blue); color: var(--blue); }
+
+  /* CHARTS */
+  .charts { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .main-chart { flex: 3; min-height: 0; position: relative; }
+  #main-chart-container { width: 100%; height: 100%; }
+  .subcharts { flex: 2; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+  .subchart { flex: 1; border-bottom: 1px solid var(--border); position: relative; }
+  .subchart:last-child { border-bottom: none; }
+  .subchart-label { position: absolute; top: 4px; left: 8px; font-size: 10px; color: var(--text3); z-index: 10; pointer-events: none; }
+  .subchart-vals { position: absolute; top: 4px; right: 8px; font-size: 10px; color: var(--text2); z-index: 10; display: flex; gap: 10px; }
+
+  /* STATE BAND */
+  .state-band-wrap { padding: 6px 12px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .state-band-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+  .state-band { display: flex; height: 14px; border-radius: 3px; overflow: hidden; gap: 1px; }
+  .band-seg { height: 100%; border-radius: 2px; position: relative; cursor: default; }
+  .band-seg[data-state="trend_up"] { background: rgba(63,185,80,.7); }
+  .band-seg[data-state="trend_down"] { background: rgba(248,81,73,.7); }
+  .band-seg[data-state="chop"] { background: rgba(210,153,34,.6); }
+  .band-seg[data-state="transition"] { background: rgba(56,139,253,.5); }
+  .band-seg[data-state="unknown"] { background: var(--bg3); }
+
+  /* RIGHT */
+  .right { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg); overflow-y: auto; }
+  .r-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .r-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* LAYER ROWS */
+  .layer-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .layer-row:last-child { margin-bottom: 0; }
+  .layer-name { font-size: 12px; color: var(--text); }
+  .layer-detail { font-size: 10px; color: var(--text2); margin-top: 1px; }
+  .gate { font-size: 10px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .gate-pass { background: rgba(63,185,80,.15); color: var(--green); }
+  .gate-warn { background: rgba(210,153,34,.15); color: var(--amber); }
+  .gate-fail { background: rgba(248,81,73,.15); color: var(--red); }
+
+  /* ALIGN STRIP */
+  .align-strip { display: flex; gap: 4px; }
+  .align-cell { flex: 1; background: var(--bg2); border-radius: 4px; padding: 5px 3px; text-align: center; border: 1px solid var(--border); }
+  .ac-tf { font-size: 9px; color: var(--text3); margin-bottom: 3px; }
+  .ac-dot { width: 7px; height: 7px; border-radius: 50%; margin: 0 auto 3px; }
+  .ac-label { font-size: 10px; font-weight: 600; }
+  .dot-g { background: var(--green); }
+  .dot-r { background: var(--red); }
+  .dot-a { background: var(--amber); }
+  .dot-n { background: var(--text3); }
+  .label-g { color: var(--green); }
+  .label-r { color: var(--red); }
+  .label-n { color: var(--text3); }
+
+  /* FIB ROWS */
+  .fib-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-radius: 4px; margin-bottom: 3px; font-size: 11px; }
+  .fib-row:last-child { margin-bottom: 0; }
+  .fib-active { background: rgba(56,139,253,.1); border: 1px solid rgba(56,139,253,.3); }
+  .fib-lv { color: var(--text2); }
+  .fib-active .fib-lv { color: var(--blue); }
+  .fib-px { font-weight: 600; color: var(--text); }
+  .fib-active .fib-px { color: var(--blue); }
+  .fib-up { color: var(--green); }
+  .fib-dn { color: var(--red); }
+
+  /* VERDICT */
+  .verdict { margin: 10px 12px; border-radius: 8px; padding: 10px 12px; border: 1px solid; }
+  .verdict-wait { background: rgba(210,153,34,.08); border-color: rgba(210,153,34,.4); }
+  .verdict-go { background: rgba(63,185,80,.08); border-color: rgba(63,185,80,.4); }
+  .verdict-no { background: rgba(248,81,73,.08); border-color: rgba(248,81,73,.4); }
+  .verdict-title { font-size: 15px; font-weight: 700; }
+  .verdict-wait .verdict-title { color: var(--amber); }
+  .verdict-go .verdict-title { color: var(--green); }
+  .verdict-no .verdict-title { color: var(--red); }
+  .verdict-sub { font-size: 10px; margin-top: 3px; color: var(--text2); }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text2); font-size: 12px; }
+  .dot-pulse { display: inline-flex; gap: 4px; margin-left: 8px; }
+  .dot-pulse span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: pulse 1.2s ease-in-out infinite; }
+  .dot-pulse span:nth-child(2) { animation-delay: .2s; }
+  .dot-pulse span:nth-child(3) { animation-delay: .4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="left">
+    <div class="topbar">
+      <span class="topbar-price" id="price">--</span>
+      <span class="topbar-change" id="price-change">--</span>
+      <span class="topbar-meta" id="price-meta"></span>
+      <div class="tf-bar">
+        <button class="tf-btn" onclick="setTF('15m')">15M</button>
+        <button class="tf-btn active" onclick="setTF('1h')">1H</button>
+        <button class="tf-btn" onclick="setTF('4h')">4H</button>
+        <button class="tf-btn" onclick="setTF('1d')">1D</button>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="main-chart">
+        <div id="main-chart-container"><div class="loading">加载K线数据<div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+      </div>
+
+      <div class="state-band-wrap">
+        <div class="state-band-label">综合状态 · 历史变化点</div>
+        <div class="state-band" id="state-band"></div>
+      </div>
+
+      <div class="subcharts">
+        <div class="subchart" id="bbw-chart-wrap">
+          <div class="subchart-label">BBW% + ADX</div>
+          <div class="subchart-vals"><span id="bbw-val" style="color:#388bfd">--</span><span id="adx-val" style="color:#8b949e">--</span></div>
+        </div>
+        <div class="subchart" id="macd-chart-wrap">
+          <div class="subchart-label">MACD · RSI · Vol</div>
+          <div class="subchart-vals"><span id="rsi-val" style="color:#a371f7">RSI --</span><span id="macd-val" style="color:#8b949e">--</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="r-section" style="padding-top:12px;">
+      <div class="r-label">四层判断</div>
+      <div id="layers-content"><div class="loading" style="height:80px;">加载中<div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+    </div>
+
+    <div class="r-section">
+      <div class="r-label">周期对齐</div>
+      <div class="align-strip" id="align-strip">
+        <div class="align-cell"><div class="ac-tf">1D</div><div class="ac-dot dot-n" id="dot-1d"></div><div class="ac-label label-n" id="label-1d">--</div></div>
+        <div class="align-cell"><div class="ac-tf">4H</div><div class="ac-dot dot-n" id="dot-4h"></div><div class="ac-label label-n" id="label-4h">--</div></div>
+        <div class="align-cell"><div class="ac-tf">1H</div><div class="ac-dot dot-n" id="dot-1h"></div><div class="ac-label label-n" id="label-1h">--</div></div>
+        <div class="align-cell"><div class="ac-tf">15M</div><div class="ac-dot dot-n" id="dot-15m"></div><div class="ac-label label-n" id="label-15m">--</div></div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="r-label">Fib 位置</div>
+      <div id="fib-content"><div class="loading" style="height:80px;">加载中<div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+    </div>
+
+    <div id="verdict-wrap"></div>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://api.kazxbt.com';
+let currentTF = '1h';
+let mainChart, candleSeries, bbwChart, bbwSeries, adxSeries, macdChart, macdSeries, volSeries;
+let refreshTimer;
+
+function setTF(tf) {
+  currentTF = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tf-btn').forEach(b => { if (b.textContent.toLowerCase().replace('m','m') === tf) b.classList.add('active'); });
+  loadKlines();
+}
+
+async function loadPrice() {
+  try {
+    const r = await fetch(`${API}/api/price`);
+    const d = await r.json();
+    document.getElementById('price').textContent = '$' + d.price.toLocaleString();
+    const chEl = document.getElementById('price-change');
+    chEl.textContent = (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%';
+    chEl.className = 'topbar-change ' + (d.change_pct >= 0 ? 'up' : 'dn');
+    document.getElementById('price-meta').textContent = `24H高 $${d.high_24h.toLocaleString()} · 低 $${d.low_24h.toLocaleString()} · 量 $${d.vol_24h}B`;
+  } catch(e) { console.error('price', e); }
+}
+
+async function loadState() {
+  try {
+    const r = await fetch(`${API}/api/state`);
+    const d = await r.json();
+    renderLayers(d);
+    renderAlign(d);
+  } catch(e) { console.error('state', e); }
+}
+
+async function loadFib() {
+  try {
+    const r = await fetch(`${API}/api/fib?timeframe=${currentTF}`);
+    const d = await r.json();
+    renderFib(d);
+  } catch(e) { console.error('fib', e); }
+}
+
+async function loadKlines() {
+  try {
+    const r = await fetch(`${API}/api/klines?timeframe=${currentTF}&limit=150`);
+    const d = await r.json();
+    renderCharts(d);
+    renderStateBand(d.indicators);
+  } catch(e) { console.error('klines', e); }
+}
+
+function renderCharts(data) {
+  const { candles, indicators } = data;
+  const container = document.getElementById('main-chart-container');
+  container.innerHTML = '';
+
+  mainChart = LightweightCharts.createChart(container, {
+    layout: { background: { color: '#0d1117' }, textColor: '#8b949e' },
+    grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: '#30363d' },
+    timeScale: { borderColor: '#30363d', timeVisible: true },
+    handleScroll: true,
+    handleScale: true,
+  });
+
+  candleSeries = mainChart.addCandlestickSeries({
+    upColor: '#3fb950', downColor: '#f85149',
+    borderUpColor: '#3fb950', borderDownColor: '#f85149',
+    wickUpColor: '#3fb950', wickDownColor: '#f85149',
+  });
+
+  const candleData = candles.map(c => ({
+    time: Math.floor(c.ts / 1000),
+    open: c.open, high: c.high, low: c.low, close: c.close
+  }));
+  candleSeries.setData(candleData);
+
+  // Fib lines on main chart
+  loadFibLines(mainChart);
+
+  // BBW chart
+  const bbwWrap = document.getElementById('bbw-chart-wrap');
+  bbwWrap.innerHTML = '<div class="subchart-label">BBW% + ADX</div><div class="subchart-vals"><span id="bbw-val" style="color:#388bfd">--</span><span id="adx-val" style="color:#8b949e">--</span></div>';
+  bbwChart = LightweightCharts.createChart(bbwWrap, {
+    layout: { background: { color: '#0d1117' }, textColor: '#8b949e' },
+    grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    rightPriceScale: { borderColor: '#30363d', scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: '#30363d', timeVisible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  });
+
+  bbwSeries = bbwChart.addLineSeries({ color: '#388bfd', lineWidth: 1.5, priceLineVisible: false });
+  adxSeries = bbwChart.addLineSeries({ color: '#484f58', lineWidth: 1, priceLineVisible: false });
+
+  const bbwData = indicators.filter(i => i.bbw_pct !== null).map(i => ({ time: Math.floor(i.ts / 1000), value: i.bbw_pct }));
+  const adxData = indicators.filter(i => i.adx !== null).map(i => ({ time: Math.floor(i.ts / 1000), value: i.adx }));
+  if (bbwData.length) bbwSeries.setData(bbwData);
+  if (adxData.length) adxSeries.setData(adxData);
+
+  // ADX threshold line at 25
+  const threshSeries = bbwChart.addLineSeries({ color: '#d29922', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, priceLineVisible: false });
+  if (bbwData.length) threshSeries.setData(bbwData.map(d => ({ time: d.time, value: 25 })));
+
+  // MACD chart
+  const macdWrap = document.getElementById('macd-chart-wrap');
+  macdWrap.innerHTML = '<div class="subchart-label">MACD hist · RSI · Vol</div><div class="subchart-vals"><span id="rsi-val" style="color:#a371f7">RSI --</span><span id="macd-val" style="color:#8b949e">--</span></div>';
+  macdChart = LightweightCharts.createChart(macdWrap, {
+    layout: { background: { color: '#0d1117' }, textColor: '#8b949e' },
+    grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    rightPriceScale: { borderColor: '#30363d', scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: '#30363d', timeVisible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  });
+
+  macdSeries = macdChart.addHistogramSeries({ priceLineVisible: false });
+  const macdData = indicators.filter(i => i.macd_hist !== null).map(i => ({
+    time: Math.floor(i.ts / 1000),
+    value: i.macd_hist,
+    color: i.macd_hist >= 0 ? 'rgba(63,185,80,.6)' : 'rgba(248,81,73,.6)'
+  }));
+  if (macdData.length) macdSeries.setData(macdData);
+
+  // Sync time scales
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (range) { bbwChart.timeScale().setVisibleLogicalRange(range); macdChart.timeScale().setVisibleLogicalRange(range); }
+  });
+
+  // Crosshair sync + update vals
+  mainChart.subscribeCrosshairMove(param => {
+    if (param.time) {
+      const idx = indicators.findIndex(i => Math.floor(i.ts / 1000) === param.time);
+      if (idx >= 0) {
+        const ind = indicators[idx];
+        if (ind.bbw_pct !== null) document.getElementById('bbw-val').textContent = 'BBW ' + ind.bbw_pct.toFixed(1) + '%';
+        if (ind.adx !== null) document.getElementById('adx-val').textContent = 'ADX ' + ind.adx.toFixed(1);
+        if (ind.rsi !== null) document.getElementById('rsi-val').textContent = 'RSI ' + ind.rsi.toFixed(1);
+        if (ind.macd_hist !== null) document.getElementById('macd-val').textContent = 'MACD ' + (ind.macd_hist >= 0 ? '+' : '') + ind.macd_hist.toFixed(4);
+      }
+    }
+  });
+
+  mainChart.timeScale().fitContent();
+}
+
+async function loadFibLines(chart) {
+  try {
+    const r = await fetch(`${API}/api/fib?timeframe=${currentTF}`);
+    const d = await r.json();
+    const colors = { '1.0': '#534AB7', '0.786': '#7F77DD', '0.618': '#388bfd', '0.5': '#d29922', '0.382': '#3fb950', '0.236': '#3B6D11', '0.0': '#3B6D11' };
+    Object.entries(d.levels).forEach(([lv, price]) => {
+      const pl = candleSeries.createPriceLine({
+        price, color: colors[lv] || '#484f58', lineWidth: 1,
+        lineStyle: lv === '0.5' ? LightweightCharts.LineStyle.Solid : LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true, title: `Fib ${lv}`,
+      });
+    });
+    renderFib(d);
+  } catch(e) {}
+}
+
+function renderStateBand(indicators) {
+  const band = document.getElementById('state-band');
+  band.innerHTML = '';
+  indicators.forEach(ind => {
+    const seg = document.createElement('div');
+    seg.className = 'band-seg';
+    seg.setAttribute('data-state', ind.state);
+    seg.style.flex = '1';
+    seg.title = ind.state;
+    band.appendChild(seg);
+  });
+}
+
+function renderLayers(stateData) {
+  const tf = currentTF === '15m' ? '15m' : currentTF;
+  const current = stateData[tf] || stateData['1h'] || {};
+  const state = current.state || 'unknown';
+  const dir = current.direction || 'neutral';
+
+  const stateLabel = { trend_up: '趋势 ↑', trend_down: '趋势 ↓', chop: '震荡', transition: '过渡', unknown: '不明' }[state] || '不明';
+  const dirLabel = { long: '偏多', short: '偏空', neutral: '中性' }[dir] || '中性';
+
+  const l1pass = state !== 'unknown';
+  const l2pass = dir !== 'neutral' ? 'pass' : 'warn';
+  const l3pass = 'warn';
+  const l4pass = 'fail';
+
+  document.getElementById('layers-content').innerHTML = `
+    <div class="layer-row">
+      <div><div class="layer-name">行情状态</div><div class="layer-detail">${stateLabel}</div></div>
+      <span class="gate ${l1pass ? 'gate-pass' : 'gate-fail'}">${l1pass ? '✓ 清晰' : '不明'}</span>
+    </div>
+    <div class="layer-row">
+      <div><div class="layer-name">方向判断</div><div class="layer-detail">${dirLabel}</div></div>
+      <span class="gate gate-${l2pass}">${l2pass === 'pass' ? '✓ ' + dirLabel : '不明确'}</span>
+    </div>
+    <div class="layer-row">
+      <div><div class="layer-name">位置判断</div><div class="layer-detail">查看Fib位</div></div>
+      <span class="gate gate-warn">人工判断</span>
+    </div>
+    <div class="layer-row">
+      <div><div class="layer-name">触发信号</div><div class="layer-detail">K线形态确认</div></div>
+      <span class="gate gate-fail">人工判断</span>
+    </div>
+  `;
+
+  renderVerdict(state, dir);
+}
+
+function renderAlign(stateData) {
+  const tfs = { '1d': '1d', '4h': '4h', '1h': '1h', '15m': '15m' };
+  const ids = { '1d': ['dot-1d', 'label-1d'], '4h': ['dot-4h', 'label-4h'], '1h': ['dot-1h', 'label-1h'], '15m': ['dot-15m', 'label-15m'] };
+
+  Object.entries(tfs).forEach(([tf, key]) => {
+    const d = stateData[key] || {};
+    const dir = d.direction || 'neutral';
+    const [dotId, labelId] = ids[tf];
+    const dotEl = document.getElementById(dotId);
+    const labelEl = document.getElementById(labelId);
+    if (!dotEl || !labelEl) return;
+    dotEl.className = 'ac-dot ' + ({ long: 'dot-g', short: 'dot-r', neutral: 'dot-n' }[dir] || 'dot-n');
+    labelEl.className = 'ac-label ' + ({ long: 'label-g', short: 'label-r', neutral: 'label-n' }[dir] || 'label-n');
+    labelEl.textContent = { long: '多', short: '空', neutral: '—' }[dir] || '—';
+  });
+}
+
+function renderFib(d) {
+  const el = document.getElementById('fib-content');
+  if (!el) return;
+  const price = d.price;
+  const entries = Object.entries(d.levels).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  el.innerHTML = entries.map(([lv, val]) => {
+    const isActive = d.nearest_below && d.nearest_below.price === val || d.nearest_above && d.nearest_above.price === val;
+    const diff = ((val - price) / price * 100);
+    const diffStr = diff > 0 ? `<span class="fib-up">+${diff.toFixed(1)}%↑</span>` : `<span class="fib-dn">${diff.toFixed(1)}%↓</span>`;
+    const activeClass = Math.abs(diff) < 1.5 ? 'fib-active' : '';
+    return `<div class="fib-row ${activeClass}"><span class="fib-lv">${lv}</span><span class="fib-px">$${val.toLocaleString()}</span>${diffStr}</div>`;
+  }).join('');
+}
+
+function renderVerdict(state, dir) {
+  const el = document.getElementById('verdict-wrap');
+  let cls, title, sub;
+
+  if (state === 'unknown') {
+    cls = 'verdict-no'; title = '不做'; sub = '行情不明，等待';
+  } else if (dir === 'neutral') {
+    cls = 'verdict-wait'; title = '等待'; sub = '方向未明确，观望';
+  } else if (state === 'chop' || state === 'transition') {
+    cls = 'verdict-wait'; title = '谨慎'; sub = '震荡/过渡，等触发信号';
+  } else {
+    cls = 'verdict-go'; title = dir === 'long' ? '可关注多' : '可关注空'; sub = '趋势 + 方向对齐，等位置和触发';
+  }
+
+  el.innerHTML = `<div class="verdict ${cls}"><div class="verdict-title">${title}</div><div class="verdict-sub">${sub}</div></div>`;
+}
+
+async function init() {
+  await Promise.all([loadPrice(), loadState(), loadKlines()]);
+}
+
+function startRefresh() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(async () => {
+    await loadPrice();
+    await loadState();
+  }, 30000);
+}
+
+init().then(startRefresh);
+</script>
+</body>
+</html>
